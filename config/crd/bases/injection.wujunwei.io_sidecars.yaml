@@ -1131,6 +1131,9 @@ spec:
                     are ANDed.
                   type: object
               type: object
+            retry_limit:
+              description: Retry limit is the ceil of the count of retry.
+              type: integer
             toleration_duration:
               description: TolerationDuration is the longest duration when sidecar
                 can not find the pod match the selector can wait
@@ -1181,6 +1184,10 @@ spec:
                   description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                   type: string
               type: object
+            retry_count:
+              description: RetryCount is the count of the sidecars had tried when
+                the relative pod's status was not ready.
+              type: integer
           type: object
       type: object
   version: v1

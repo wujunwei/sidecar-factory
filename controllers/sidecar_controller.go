@@ -19,13 +19,14 @@ package controllers
 import (
 	"context"
 	"github.com/go-logr/logr"
+	injectionv1 "github.com/wujunwei/sidecar-factory/api/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	injectionv1 "github.com/wujunwei/sidecar-factory/api/v1"
+	"time"
 )
 
 // SideCarReconciler reconciles a SideCar object
@@ -44,14 +45,49 @@ type SideCarReconciler struct {
 func (r *SideCarReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	_ = r.Log.WithValues("sidecar", req.NamespacedName)
-
+	var res ctrl.Result
 	var sidecar injectionv1.SideCar
 	err := r.Get(ctx, req.NamespacedName, &sidecar)
 	if err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+		return res, client.IgnoreNotFound(err)
 	}
-
-	return ctrl.Result{}, nil
+	sidecar.Status.RetryCount++
+	err = r.Update(ctx, &sidecar) //todo change to patch
+	if err != nil {
+		return res, err
+	}
+	pl, err := r.getPodListBySideCar(sidecar)
+	scContainerMap := make(map[string]corev1.Container)
+	for _, container := range sidecar.Spec.Containers {
+		scContainerMap[container.Name] = container
+	}
+	if apierrors.IsNotFound(err) {
+		if sidecar.Spec.RetryLimit < sidecar.Status.RetryCount {
+			r.Log.Info("pod not found ,retry count has reach the limit")
+		} else {
+			res.RequeueAfter = 10 * time.Second
+		}
+		return res, err
+	}
+	for _, item := range pl.Items {
+		var sidecarContainers []corev1.Container
+		for _, container := range item.Spec.Containers {
+			if _, exist := scContainerMap[container.Name]; exist {
+				r.Log.Info("containers has exist, it will be skip", "name", container.Name)
+				continue
+			}
+			sidecarContainers = append(sidecarContainers, scContainerMap[container.Name])
+		}
+		item.Spec.Containers = append(item.Spec.Containers, sidecarContainers...)
+		err := r.Update(ctx, &item) //todo change to patch
+		if err != nil {
+			if apierrors.IsConflict(err) {
+				res.Requeue = true
+			}
+			r.Log.Error(err, "update pod error", "containers name", sidecarContainers)
+		}
+	}
+	return res, nil
 }
 
 func (r *SideCarReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -59,7 +95,7 @@ func (r *SideCarReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&injectionv1.SideCar{}).
 		Complete(r)
 }
-func (r *SideCarReconciler) GetPodListBySideCar(sc *injectionv1.SideCar) (corev1.PodList, error) {
+func (r *SideCarReconciler) getPodListBySideCar(sc injectionv1.SideCar) (corev1.PodList, error) {
 	var podList corev1.PodList
 	selector, _ := metav1.LabelSelectorAsSelector(sc.Spec.Selector)
 	err := r.List(context.Background(), &podList, client.MatchingLabelsSelector{Selector: selector}, client.InNamespace(sc.Namespace))

@@ -27,8 +27,11 @@ import (
 // SideCarSpec defines the desired state of SideCar
 type SideCarSpec struct {
 
+	// Retry limit is the ceil of the count of retry.
+	// +optional
+	RetryLimit int `json:"retry_limit,omitempty"`
 	// TolerationDuration is the longest duration when sidecar can not find the pod match the selector can wait
-	//+optional
+	// +optional
 	TolerationDuration metav1.Duration `json:"toleration_duration,omitempty"`
 	// List of containers belonging to the sidecar.
 	// Containers cannot currently be added or removed.
@@ -46,6 +49,9 @@ type SideCarSpec struct {
 
 // SideCarStatus defines the observed state of SideCar
 type SideCarStatus struct {
+	// RetryCount is the count of the sidecars had tried when the relative pod's status was not ready.
+	// +optional
+	RetryCount int `json:"retry_count"`
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 	// A  pointers to Relative Pod.
