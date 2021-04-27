@@ -1,0 +1,7 @@
+domain: wujunwei.io
+repo: github.com/wujunwei/sidecar-factory
+resources:
+- group: injection
+  kind: SideCar
+  version: v1
+version: "2"

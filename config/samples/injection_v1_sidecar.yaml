@@ -1,0 +1,7 @@
+apiVersion: injection.wujunwei.io/v1
+kind: SideCar
+metadata:
+  name: sidecar-sample
+spec:
+  # Add fields here
+  foo: bar

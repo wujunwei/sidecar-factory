@@ -1,0 +1,52 @@
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - pods/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - injection.wujunwei.io
+  resources:
+  - sidecars
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - injection.wujunwei.io
+  resources:
+  - sidecars/status
+  verbs:
+  - get
+  - patch
+  - update
