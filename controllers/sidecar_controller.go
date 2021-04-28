@@ -24,6 +24,8 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/json"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
@@ -46,48 +48,49 @@ func (r *SideCarReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	_ = r.Log.WithValues("sidecar", req.NamespacedName)
 	var res ctrl.Result
+
 	var sidecar injectionv1.SideCar
 	err := r.Get(ctx, req.NamespacedName, &sidecar)
 	if err != nil {
 		return res, client.IgnoreNotFound(err)
 	}
-	sidecar.Status.RetryCount++
-	err = r.Update(ctx, &sidecar) //todo change to patch
-	if err != nil {
-		return res, err
-	}
 	pl, err := r.getPodListBySideCar(sidecar)
-	scContainerMap := make(map[string]corev1.Container)
-	for _, container := range sidecar.Spec.Containers {
-		scContainerMap[container.Name] = container
-	}
-	if apierrors.IsNotFound(err) {
+	if err != nil {
 		if sidecar.Spec.RetryLimit < sidecar.Status.RetryCount {
 			r.Log.Info("pod not found ,retry count has reach the limit")
 		} else {
 			res.RequeueAfter = 10 * time.Second
+			_ = r.updateRetryCount(ctx, &sidecar)
 		}
 		return res, err
 	}
+	var mergePatch, _ = json.Marshal(map[string]interface{}{
+		"spec": map[string]interface{}{
+			"containers": sidecar.Spec.Containers,
+		},
+	})
 	for _, item := range pl.Items {
-		var sidecarContainers []corev1.Container
-		for _, container := range item.Spec.Containers {
-			if _, exist := scContainerMap[container.Name]; exist {
-				r.Log.Info("containers has exist, it will be skip", "name", container.Name)
-				continue
-			}
-			sidecarContainers = append(sidecarContainers, scContainerMap[container.Name])
-		}
-		item.Spec.Containers = append(item.Spec.Containers, sidecarContainers...)
-		err := r.Update(ctx, &item) //todo change to patch
+		err := r.Patch(ctx, &item, client.RawPatch(types.StrategicMergePatchType, mergePatch))
 		if err != nil {
 			if apierrors.IsConflict(err) {
 				res.Requeue = true
 			}
-			r.Log.Error(err, "update pod error", "containers name", sidecarContainers)
+			r.Log.Error(err, "update pod error", "pod name", item.Name)
 		}
 	}
+	if res.Requeue {
+		_ = r.updateRetryCount(ctx, &sidecar)
+	}
 	return res, nil
+}
+
+func (r *SideCarReconciler) updateRetryCount(ctx context.Context, sc *injectionv1.SideCar) error {
+	mergePatch, _ := json.Marshal(map[string]interface{}{
+		"status": map[string]interface{}{
+			"retry": sc.Spec.Containers,
+		},
+	})
+	return r.Patch(ctx, sc, client.RawPatch(types.MergePatchType, mergePatch))
 }
 
 func (r *SideCarReconciler) SetupWithManager(mgr ctrl.Manager) error {
