@@ -87,7 +87,7 @@ func (r *SideCarReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 func (r *SideCarReconciler) updateRetryCount(ctx context.Context, sc *injectionv1.SideCar) error {
 	mergePatch, _ := json.Marshal(map[string]interface{}{
 		"status": map[string]interface{}{
-			"retry": sc.Spec.Containers,
+			"retry": sc.Status.RetryCount + 1,
 		},
 	})
 	return r.Patch(ctx, sc, client.RawPatch(types.MergePatchType, mergePatch))
