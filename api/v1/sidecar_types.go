@@ -39,7 +39,7 @@ type SideCarSpec struct {
 	// Cannot be updated.
 	// +patchMergeKey=name
 	// +patchStrategy=merge
-	Containers []corev1.Container `json:"Containers,omitempty" patchStrategy:"merge" patchMergeKey:"name"`
+	Containers []corev1.Container `json:"containers,omitempty" patchStrategy:"merge" patchMergeKey:"name"`
 	// Selector is used to find matching pods.
 	// Pods that match this label selector are counted to determine the number of pods
 	// in their corresponding topology domain.

@@ -4,4 +4,5 @@ metadata:
   name: sidecar-sample
 spec:
   # Add fields here
-  foo: bar
+  retry_limit: 3
+  toleration_duration: "5s"
