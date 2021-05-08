@@ -1,5 +1,5 @@
 /*
-
+Copyright 2021.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,14 +18,14 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/go-logr/logr"
 	injectionv1 "github.com/wujunwei/sidecar-factory/api/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/json"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
@@ -38,15 +38,18 @@ type SideCarReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=injection.wujunwei.io,resources=sidecars,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=injection.wujunwei.io,resources=sidecars/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups="",resources=pods,verbs=get;update;patch
-// +kubebuilder:rbac:groups="",resources=pods/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;update
+//+kubebuilder:rbac:groups=injection.wujunwei.io,resources=sidecars,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=injection.wujunwei.io,resources=sidecars/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=injection.wujunwei.io,resources=sidecars/finalizers,verbs=update
+//+kubebuilder:rbac:groups="",resources=pods,verbs=get;update;patch
+//+kubebuilder:rbac:groups="",resources=pods/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;update
 
-func (r *SideCarReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
+// Reconcile For more details, check Reconcile and its Result here:
+// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.2/pkg/reconcile
+func (r *SideCarReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = r.Log.WithValues("sidecar", req.NamespacedName)
+	r.Log.Info("new sidecar come", "namespace-name", req.NamespacedName)
 	var res ctrl.Result
 
 	var sidecar injectionv1.SideCar
@@ -55,7 +58,7 @@ func (r *SideCarReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return res, client.IgnoreNotFound(err)
 	}
 	pl, err := r.getPodListBySideCar(sidecar)
-	if err != nil {
+	if err != nil || len(pl.Items) == 0 {
 		if sidecar.Spec.RetryLimit < sidecar.Status.RetryCount {
 			r.Log.Info("pod not found ,retry count has reach the limit")
 		} else {
@@ -72,7 +75,7 @@ func (r *SideCarReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	for _, item := range pl.Items {
 		err := r.Patch(ctx, &item, client.RawPatch(types.StrategicMergePatchType, mergePatch))
 		if err != nil {
-			if apierrors.IsConflict(err) {
+			if errors.IsConflict(err) {
 				res.Requeue = true
 			}
 			r.Log.Error(err, "update pod error", "pod name", item.Name)
@@ -84,6 +87,13 @@ func (r *SideCarReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	return res, nil
 }
 
+// SetupWithManager sets up the controller with the Manager.
+func (r *SideCarReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&injectionv1.SideCar{}).
+		Complete(r)
+}
+
 func (r *SideCarReconciler) updateRetryCount(ctx context.Context, sc *injectionv1.SideCar) error {
 	mergePatch, _ := json.Marshal(map[string]interface{}{
 		"status": map[string]interface{}{
@@ -91,12 +101,6 @@ func (r *SideCarReconciler) updateRetryCount(ctx context.Context, sc *injectionv
 		},
 	})
 	return r.Patch(ctx, sc, client.RawPatch(types.MergePatchType, mergePatch))
-}
-
-func (r *SideCarReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&injectionv1.SideCar{}).
-		Complete(r)
 }
 func (r *SideCarReconciler) getPodListBySideCar(sc injectionv1.SideCar) (corev1.PodList, error) {
 	var podList corev1.PodList

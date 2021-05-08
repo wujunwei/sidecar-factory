@@ -1,5 +1,5 @@
 /*
-
+Copyright 2021.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@ import (
 
 // SideCarSpec defines the desired state of SideCar
 type SideCarSpec struct {
-
 	// Retry limit is the ceil of the count of retry.
 	// +optional
 	RetryLimit int `json:"retry_limit,omitempty"`
@@ -62,7 +61,8 @@ type SideCarStatus struct {
 	CreateTime *metav1.Time `json:"create_time,omitempty"`
 }
 
-// +kubebuilder:object:root=true
+//+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
 
 // SideCar is the Schema for the sidecars API
 type SideCar struct {
@@ -73,7 +73,7 @@ type SideCar struct {
 	Status SideCarStatus `json:"status,omitempty"`
 }
 
-// +kubebuilder:object:root=true
+//+kubebuilder:object:root=true
 
 // SideCarList contains a list of SideCar
 type SideCarList struct {

@@ -1,6 +1,7 @@
 apiVersion: injection.wujunwei.io/v1
 kind: SideCar
 metadata:
+  namespace: default
   name: sidecar-sample
 spec:
   # Add fields here
@@ -13,6 +14,6 @@ spec:
         - /bin/sh
         - -c
         - date; echo Hello from the Kubernetes cluster
-  selector:
+  Selector:
     matchLabels:
       app: hello

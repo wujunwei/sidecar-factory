@@ -45,6 +45,12 @@ rules:
 - apiGroups:
   - injection.wujunwei.io
   resources:
+  - sidecars/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - injection.wujunwei.io
+  resources:
   - sidecars/status
   verbs:
   - get

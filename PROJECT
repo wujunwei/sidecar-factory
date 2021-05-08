@@ -1,7 +1,16 @@
 domain: wujunwei.io
+layout:
+- go.kubebuilder.io/v3
+projectName: sidecar-factory
 repo: github.com/wujunwei/sidecar-factory
 resources:
-- group: injection
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: wujunwei.io
+  group: injection
   kind: SideCar
+  path: github.com/wujunwei/sidecar-factory/api/v1
   version: v1
-version: "2"
+version: "3"
