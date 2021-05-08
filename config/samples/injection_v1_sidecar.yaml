@@ -6,3 +6,13 @@ spec:
   # Add fields here
   retry_limit: 3
   toleration_duration: "5s"
+  containers:
+    - name: hello
+      image: busybox
+      args:
+        - /bin/sh
+        - -c
+        - date; echo Hello from the Kubernetes cluster
+  selector:
+    matchLabels:
+      app: hello
