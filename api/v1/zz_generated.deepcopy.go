@@ -21,7 +21,6 @@ limitations under the License.
 package v1
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
@@ -89,11 +88,11 @@ func (in *SideCarList) DeepCopyObject() runtime.Object {
 func (in *SideCarSpec) DeepCopyInto(out *SideCarSpec) {
 	*out = *in
 	out.TolerationDuration = in.TolerationDuration
-	if in.Containers != nil {
-		in, out := &in.Containers, &out.Containers
-		*out = make([]corev1.Container, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
+	if in.Images != nil {
+		in, out := &in.Images, &out.Images
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
 		}
 	}
 	if in.Selector != nil {

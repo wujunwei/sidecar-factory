@@ -70,7 +70,6 @@ func main() {
 		MetricsBindAddress:     metricsAddr,
 		Port:                   9443,
 		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "e180334d.wujunwei.io",
 	})
 	if err != nil {

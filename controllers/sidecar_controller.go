@@ -67,13 +67,15 @@ func (r *SideCarReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 		return res, err
 	}
-	var mergePatch, _ = json.Marshal(map[string]interface{}{
-		"spec": map[string]interface{}{
-			"containers": sidecar.Spec.Containers,
-		},
-	})
+
 	for _, item := range pl.Items {
-		err := r.Patch(ctx, &item, client.RawPatch(types.StrategicMergePatchType, mergePatch))
+		for i, cnt := range item.Spec.Containers {
+			if im, ok := sidecar.Spec.Images[cnt.Name]; ok {
+				item.Spec.Containers[i].Image = im
+			}
+
+		}
+		err := r.Update(ctx, &item)
 		if err != nil {
 			if errors.IsConflict(err) {
 				res.Requeue = true

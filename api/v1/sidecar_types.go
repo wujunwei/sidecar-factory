@@ -36,14 +36,13 @@ type SideCarSpec struct {
 	// Containers cannot currently be added or removed.
 	// There must be at least one container in a sidecar.
 	// Cannot be updated.
-	// +patchMergeKey=name
-	// +patchStrategy=merge
-	Containers []corev1.Container `json:"containers,omitempty" patchStrategy:"merge" patchMergeKey:"name"`
+	// +optional
+	Images map[string]string `json:"images,omitempty"`
 	// Selector is used to find matching pods.
 	// Pods that match this label selector are counted to determine the number of pods
 	// in their corresponding topology domain.
 	// +optional
-	Selector *metav1.LabelSelector `json:"Selector,omitempty" protobuf:"bytes,4,opt,name=labelSelector"`
+	Selector *metav1.LabelSelector `json:"selector,omitempty" protobuf:"bytes,4,opt,name=labelSelector"`
 }
 
 // SideCarStatus defines the observed state of SideCar
