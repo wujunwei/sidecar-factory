@@ -22,10 +22,10 @@ import (
 	"github.com/go-logr/logr"
 	injectionv1 "github.com/wujunwei/sidecar-factory/api/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
@@ -57,6 +57,7 @@ func (r *SideCarReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err != nil {
 		return res, client.IgnoreNotFound(err)
 	}
+
 	pl, err := r.getPodListBySideCar(sidecar)
 	if err != nil || len(pl.Items) == 0 {
 		if sidecar.Spec.RetryLimit < sidecar.Status.RetryCount {
@@ -73,13 +74,11 @@ func (r *SideCarReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			if im, ok := sidecar.Spec.Images[cnt.Name]; ok {
 				item.Spec.Containers[i].Image = im
 			}
-
 		}
-		err := r.Update(ctx, &item)
+		err :=retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			return r.Update(ctx, &item)
+		})
 		if err != nil {
-			if errors.IsConflict(err) {
-				res.Requeue = true
-			}
 			r.Log.Error(err, "update pod error", "pod name", item.Name)
 		}
 	}
