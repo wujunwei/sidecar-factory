@@ -75,7 +75,7 @@ func (r *SideCarReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 				item.Spec.Containers[i].Image = im
 			}
 		}
-		err :=retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			return r.Update(ctx, &item)
 		})
 		if err != nil {
