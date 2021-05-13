@@ -26,3 +26,6 @@ webhooks:
     resources:
     - pods
   sideEffects: None
+  namespaceSelector:
+      matchLabels:
+        admission-webhook-example: enabled
