@@ -11,7 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-// +kubebuilder:webhook:path=/mutate-v1-pod,mutating=true,failurePolicy=fail,groups="",resources=pods,verbs=create;update,versions=v1,name=pod.wujunwei.io,sideEffects=none,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/mutate-v1-pod,mutating=true,failurePolicy=ignore,groups="",resources=pods,verbs=create;update,versions=v1,name=pod.wujunwei.io,sideEffects=none,admissionReviewVersions=v1
 
 var _ webhook.AdmissionHandler = &PodSidecar{}
 
@@ -23,6 +23,7 @@ type PodSidecar struct {
 var podInjectionLog = logf.Log.WithName("pod injection")
 
 func (a *PodSidecar) Handle(ctx context.Context, req admission.Request) admission.Response {
+	podInjectionLog.Info("started !")
 	pod := &corev1.Pod{}
 	err := a.decoder.Decode(req, pod)
 	if err != nil {
@@ -43,5 +44,6 @@ func (a *PodSidecar) Handle(ctx context.Context, req admission.Request) admissio
 }
 func (a *PodSidecar) InjectDecoder(d *admission.Decoder) error {
 	a.decoder = d
+	podInjectionLog.Info("injected")
 	return nil
 }
