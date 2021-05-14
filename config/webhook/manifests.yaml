@@ -13,7 +13,7 @@ webhooks:
       name: webhook-service
       namespace: system
       path: /mutate-v1-pod
-  failurePolicy: Fail
+  failurePolicy: Ignore
   name: pod.wujunwei.io
   rules:
   - apiGroups:
@@ -26,6 +26,3 @@ webhooks:
     resources:
     - pods
   sideEffects: None
-  namespaceSelector:
-      matchLabels:
-        admission-webhook-example: enabled
