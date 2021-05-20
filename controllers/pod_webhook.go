@@ -39,8 +39,7 @@ func (a *PodSidecar) Handle(ctx context.Context, req admission.Request) admissio
 	pod.Spec.Containers = append(pod.Spec.Containers, corev1.Container{
 		Name:    "sidecar",
 		Image:   "busybox",
-		Command: []string{"sleep"},
-		Args:    []string{"100000"},
+		Command: []string{"cat"},
 	})
 	marshaledPod, err := json.Marshal(pod)
 	if err != nil {
